@@ -1,0 +1,25 @@
+{
+  "name": "Glutify: Find foods you can eat",
+  "short_name": "Glutify",
+  "description": "Scan a barcode, snap a label, or paste ingredients to check for gluten in seconds.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F8F6EE",
+  "theme_color": "#181811",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
