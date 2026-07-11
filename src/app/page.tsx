@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import Mascot from "../components/Mascot";
+import { useEffect, useState } from "react";
+import ConsentModal from "../components/ConsentModal";
 import FeedbackModal from "../components/FeedbackModal";
 import ResultCard from "../components/ResultCard";
 import BarcodeTab from "../components/BarcodeTab";
@@ -10,8 +10,9 @@ import TextTab from "../components/TextTab";
 import GuideTab from "../components/GuideTab";
 import SpotsTab from "../components/SpotsTab";
 import HistoryTab from "../components/HistoryTab";
+import { HeroMascot } from "../components/Mascot";
 import { CheckResult } from "../lib/types";
-import { addHistoryEntry, toggleHistorySaved } from "../lib/storage";
+import { ackConsent, hasAckedConsent, saveScan, setHistorySaved } from "../lib/storage";
 
 type TabId = "barcode" | "photo" | "text" | "guide" | "spots" | "history";
 
@@ -24,123 +25,127 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "history", label: "History" },
 ];
 
-const SCAN_TABS: TabId[] = ["barcode", "photo", "text"];
-
 export default function GlutifyPage() {
   const [activeTab, setActiveTab] = useState<TabId>("barcode");
   const [result, setResult] = useState<CheckResult | null>(null);
-  const [savedId, setSavedId] = useState<string | null>(null);
+  const [currentScanId, setCurrentScanId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
-  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setShowConsent(!hasAckedConsent());
+  }, []);
+
+  function selectTab(id: TabId) {
+    setActiveTab(id);
+    setResult(null);
+  }
 
   function handleResult(r: CheckResult) {
-    const entry = addHistoryEntry(r);
     setResult(r);
-    setSavedId(entry.id);
+    setCurrentScanId(saveScan(r));
     setSaved(false);
   }
 
-  function handleSave() {
-    if (!savedId) return;
-    toggleHistorySaved(savedId);
+  function handleToggleSaved() {
+    if (!currentScanId) return;
+    setHistorySaved(currentScanId, !saved);
     setSaved((s) => !s);
   }
 
-  function scrollToScan() {
-    setActiveTab("barcode");
-    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   return (
-    <div className="min-h-screen bg-glutify-cream text-glutify-ink">
+    <div className="min-h-screen bg-glutify-bg">
+      {showConsent && (
+        <ConsentModal
+          onAck={() => {
+            ackConsent();
+            setShowConsent(false);
+          }}
+        />
+      )}
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
 
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <header className="flex items-center justify-between">
-          <p className="text-2xl font-extrabold tracking-tight">
+      <div className="mx-auto max-w-[560px] pb-[70px]">
+        <nav className="mx-auto flex max-w-[560px] animate-fade-up items-center justify-between px-[22px] pb-3.5 pt-5">
+          <div className="font-display text-[23px] font-extrabold tracking-tight">
             glut<span className="text-glutify-lime-deep">ify</span>
-          </p>
-          <button
-            onClick={scrollToScan}
-            className="rounded-full bg-glutify-ink px-5 py-2.5 text-sm font-semibold text-glutify-lime transition hover:opacity-90"
-          >
-            Scan now
-          </button>
-        </header>
-
-        <div className="relative mt-6 overflow-hidden rounded-3xl bg-gradient-to-br from-glutify-lime-soft to-glutify-lime p-8">
-          <div className="relative z-10 max-w-sm">
-            <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl">
-              Find foods you can eat.
-            </h1>
-            <p className="mt-3 text-glutify-ink/70">
-              Scan a barcode, snap the label, or paste ingredients, and Glootie
-              tells you in seconds if gluten&rsquo;s hiding in there.
-            </p>
           </div>
-          <div className="absolute right-6 top-8 flex flex-col items-center gap-4">
-            <span className="rounded-full bg-glutify-ink px-4 py-1.5 text-xs font-bold tracking-wide text-glutify-lime">
-              GLUTEN CHECK
-            </span>
-            <Mascot className="h-28 w-28 sm:h-32 sm:w-32" />
+          <div className="rounded-full bg-glutify-ink px-[17px] py-2.5 text-[12.5px] font-bold text-glutify-lime">
+            Scan now
+          </div>
+        </nav>
+
+        <div
+          className="relative mx-4 mb-6 mt-1 animate-fade-up overflow-hidden rounded-[30px] px-7 pb-[34px] pt-[38px] [animation-delay:80ms]"
+          style={{ background: "linear-gradient(150deg, #d9f24b 0%, #ecf9ad 90%)" }}
+        >
+          <span className="absolute right-6 top-[26px] z-[1] rounded-full bg-glutify-ink px-3 py-[7px] text-[10.5px] font-extrabold uppercase tracking-wide text-glutify-lime">
+            Gluten check
+          </span>
+          <div className="relative flex items-center gap-2.5">
+            <div className="min-w-0 flex-1">
+              <h1 className="font-display text-[38px] font-extrabold leading-[0.96] tracking-tight">
+                Find foods you can eat.
+              </h1>
+              <p className="mt-3 text-sm font-medium leading-relaxed text-[#3a3a12]">
+                Scan a barcode, snap the label, or paste ingredients, and Glootie tells you in
+                seconds if gluten&apos;s hiding in there.
+              </p>
+            </div>
+            <div className="flex w-[118px] flex-shrink-0 justify-center">
+              <HeroMascot />
+            </div>
           </div>
         </div>
 
-        <nav className="mt-6 flex flex-wrap gap-2 rounded-full bg-glutify-card p-1.5 shadow-sm ring-1 ring-black/5">
-          {TABS.map((t) => {
-            const active = activeTab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
-                  active
-                    ? "bg-glutify-ink text-glutify-lime"
-                    : "text-glutify-ink/50 hover:text-glutify-ink"
-                }`}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </nav>
+        <div className="mb-4 flex animate-fade-up gap-2 overflow-x-auto px-4 [animation-delay:160ms] [scrollbar-width:none]">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => selectTab(t.id)}
+              className={`flex-shrink-0 whitespace-nowrap rounded-full border-[1.5px] px-[18px] py-3 text-[13.5px] font-bold transition ${
+                activeTab === t.id
+                  ? "border-glutify-ink bg-glutify-ink text-glutify-lime"
+                  : "border-glutify-line bg-glutify-panel text-glutify-ink-dim hover:border-glutify-ink hover:text-glutify-ink"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-        <div ref={cardRef} className="mt-6 rounded-3xl bg-glutify-card p-6 shadow-sm ring-1 ring-black/5">
+        <div className="mx-4 mb-4 animate-fade-up rounded-[20px] border-[1.5px] border-glutify-line bg-glutify-panel p-[22px] [animation-delay:160ms]">
           {activeTab === "barcode" && <BarcodeTab onResult={handleResult} />}
           {activeTab === "photo" && <PhotoLabelTab onResult={handleResult} />}
           {activeTab === "text" && <TextTab onResult={handleResult} />}
           {activeTab === "guide" && <GuideTab />}
           {activeTab === "spots" && <SpotsTab />}
           {activeTab === "history" && <HistoryTab />}
-
-          <div className="mt-8 border-t border-black/10 pt-6 text-center">
-            <button
-              onClick={() => setShowFeedback(true)}
-              className="text-sm font-medium text-glutify-ink/70 underline decoration-glutify-ink/30 underline-offset-4 hover:text-glutify-ink"
-            >
-              Found something wrong? Send feedback
-            </button>
-            <p className="mx-auto mt-4 max-w-lg text-xs leading-relaxed text-glutify-ink/50">
-              <span className="font-semibold text-glutify-ink/70">Important:</span> Glutify
-              is an informational tool, not medical advice and not a
-              substitute for reading the actual product label. It checks
-              ingredient text against a keyword list and can be wrong,
-              incomplete, or out of date. It does not detect
-              cross-contamination and cannot guarantee a product is safe.
-              Always read the physical label, confirm with the manufacturer,
-              and if you have celiac disease or a food allergy, follow the
-              guidance of a qualified medical professional. You use Glutify
-              at your own risk.
-            </p>
-          </div>
         </div>
 
-        {SCAN_TABS.includes(activeTab) && (
-          <div className="mt-6">
-            <ResultCard result={result} onSave={result ? handleSave : undefined} saved={saved} />
+        <div
+          onClick={() => setShowFeedback(true)}
+          className="mt-5 cursor-pointer text-center text-[12.5px] font-bold text-glutify-ink-dim underline decoration-1 underline-offset-[3px] hover:text-glutify-ink"
+        >
+          Found something wrong? Send feedback
+        </div>
+
+        {result && (
+          <div className="mt-4">
+            <ResultCard result={result} saved={saved} onToggleSaved={handleToggleSaved} />
           </div>
         )}
+
+        <div className="mt-2.5 px-[26px] text-center text-[11.5px] leading-relaxed text-glutify-ink-dim">
+          <strong className="text-glutify-ink">Important:</strong> Glutify is an informational tool,
+          not medical advice and not a substitute for reading the actual product label. It checks
+          ingredient text against a keyword list and can be wrong, incomplete, or out of date. It
+          does not detect cross-contamination and cannot guarantee a product is safe. Always read
+          the physical label, confirm with the manufacturer, and if you have celiac disease or a
+          food allergy, follow the guidance of a qualified medical professional. You use Glutify at
+          your own risk.
+        </div>
       </div>
     </div>
   );

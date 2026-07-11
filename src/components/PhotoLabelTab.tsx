@@ -1,7 +1,7 @@
 "use client";
 
-import { ChangeEvent, useRef, useState } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { ChangeEvent, useState } from "react";
+import { Upload } from "lucide-react";
 import { checkIngredientsText } from "../lib/glutenCheck";
 import { CheckResult } from "../lib/types";
 
@@ -11,42 +11,42 @@ export default function PhotoLabelTab({
   onResult: (result: CheckResult) => void;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     setFile(f);
-    setError(null);
     setPreviewUrl(URL.createObjectURL(f));
+    setStatus("");
   }
 
   async function readAndCheck() {
-    if (!file) return;
+    if (!file || !previewUrl) return;
     setLoading(true);
-    setProgress(0);
-    setError(null);
+    setStatus("Reading label text… this can take 10–20s.");
     try {
       const Tesseract = await import("tesseract.js");
-      const { data } = await Tesseract.recognize(file, "eng", {
+      const {
+        data: { text },
+      } = await Tesseract.recognize(previewUrl, "eng", {
         logger: (m) => {
-          if (m.status === "recognizing text" && typeof m.progress === "number") {
-            setProgress(Math.round(m.progress * 100));
+          if (m.status === "recognizing text") {
+            setStatus(`Reading label text… ${Math.round(m.progress * 100)}%`);
           }
         },
       });
-      const text = data.text.trim();
-      if (!text) {
-        setError("Couldn't read any text from that photo. Try a sharper, well-lit shot.");
+      const clean = (text || "").trim();
+      if (!clean) {
+        setStatus("No text found. Get the ingredients list close, flat, and well-lit, then try again.");
         return;
       }
-      onResult(checkIngredientsText(text, "photo-label"));
+      setStatus("Done.");
+      onResult({ ...checkIngredientsText(clean), rawText: clean });
     } catch {
-      setError("Something went wrong reading that label. Try again with a clearer photo.");
+      setStatus("Could not read the image. Try a clearer, closer photo of the ingredients list, or paste the text into the Text tab.");
     } finally {
       setLoading(false);
     }
@@ -54,17 +54,11 @@ export default function PhotoLabelTab({
 
   return (
     <div>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-glutify-ink/50">
+      <h2 className="mb-3.5 text-xs font-bold uppercase tracking-wide text-glutify-ink-dim">
         Photo of Ingredients Label
       </h2>
-      <div className="mt-2 border-t border-black/10" />
-      <p className="mt-3 text-sm text-glutify-ink/50">
-        Snap or upload a clear photo of the ingredients text and Glootie will
-        read it and check for gluten.
-      </p>
 
       <input
-        ref={fileInputRef}
         type="file"
         accept="image/*"
         capture="environment"
@@ -72,47 +66,32 @@ export default function PhotoLabelTab({
         className="hidden"
         id="label-photo-input"
       />
-
-      {previewUrl ? (
-        <div className="mt-4 overflow-hidden rounded-2xl bg-black">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewUrl} alt="Ingredients label preview" className="max-h-64 w-full object-contain" />
-        </div>
-      ) : (
-        <label
-          htmlFor="label-photo-input"
-          className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-black/20 bg-glutify-cream py-10 text-sm font-medium text-glutify-ink/70 transition hover:border-glutify-lime-deep hover:text-glutify-ink"
-        >
-          <Upload className="h-4 w-4" />
-          Tap to take a photo or upload a label image
-        </label>
-      )}
+      <label
+        htmlFor="label-photo-input"
+        className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-glutify-line bg-glutify-panel-2 py-9 text-center text-[13.5px] font-semibold text-glutify-ink-dim transition hover:border-glutify-lime-deep hover:bg-glutify-lime-soft hover:text-glutify-ink"
+      >
+        <Upload className="h-4 w-4" />
+        Tap to take a photo or upload a label image
+      </label>
 
       {previewUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={previewUrl} alt="Ingredients label preview" className="mt-3 max-w-full rounded-2xl" />
+      )}
+
+      {file && (
         <button
-          onClick={() => fileInputRef.current?.click()}
-          className="mt-2 text-sm font-medium text-glutify-ink/50 hover:text-glutify-ink"
+          onClick={readAndCheck}
+          disabled={loading}
+          className="mt-3 w-full rounded-full bg-glutify-ink py-4 text-[14.5px] font-extrabold tracking-tight text-glutify-lime transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Choose a different photo
+          Read & Check Label
         </button>
       )}
 
-      <button
-        onClick={readAndCheck}
-        disabled={!file || loading}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-glutify-ink py-3.5 font-semibold text-glutify-lime transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Reading label… {progress}%
-          </>
-        ) : (
-          "Read & Check Label"
-        )}
-      </button>
-
-      {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+      <div className="mt-2.5 min-h-[16px] text-[12.5px] font-semibold text-glutify-ink-dim">
+        {status}
+      </div>
     </div>
   );
 }

@@ -1,32 +1,37 @@
-export type GlutenVerdict = "gluten-free" | "caution" | "contains";
+export type Verdict = "safe" | "warn" | "bad";
 
 export interface Flag {
-  term: string;
-  matched: string;
-  reason: string;
+  label: string;
+  tag: "definite" | "check" | "trace";
+}
+
+export interface AnalyzeResult {
+  definite: string[];
+  check: string[];
+  trace: string[];
 }
 
 export interface CheckResult {
-  verdict: GlutenVerdict;
-  summary: string;
+  verdict: Verdict;
+  title: string;
+  subtitle: string;
   flags: Flag[];
-  source: "text" | "barcode" | "photo-barcode" | "photo-label";
   productName?: string;
-  brand?: string;
-  imageUrl?: string;
   rawText?: string;
-  barcode?: string;
 }
 
-export interface ScanHistoryEntry extends CheckResult {
+export interface ScanHistoryEntry {
   id: string;
-  timestamp: number;
+  name: string;
+  verdict: Verdict;
+  when: number;
   saved: boolean;
 }
 
 export interface SafeSpot {
   id: string;
   name: string;
-  notes: string;
-  timestamp: number;
+  city: string;
+  note: string;
+  addedAt: number;
 }

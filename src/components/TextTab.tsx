@@ -13,30 +13,24 @@ export default function TextTab({
 
   function handleCheck() {
     if (!text.trim()) return;
-    onResult(checkIngredientsText(text, "text"));
+    onResult(checkIngredientsText(text));
   }
 
   return (
     <div>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-glutify-ink/50">
+      <h2 className="mb-3.5 text-xs font-bold uppercase tracking-wide text-glutify-ink-dim">
         Paste Ingredients
       </h2>
-      <div className="mt-2 border-t border-black/10" />
-      <p className="mt-3 text-sm text-glutify-ink/50">
-        Paste an ingredient list and Glootie will flag anything that could
-        contain gluten.
-      </p>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        rows={6}
-        placeholder="e.g. Water, sugar, wheat flour, salt, natural flavoring..."
-        className="mt-4 w-full resize-none rounded-2xl bg-glutify-cream p-4 text-sm text-glutify-ink placeholder:text-glutify-ink/30 focus:outline-none focus:ring-2 focus:ring-glutify-lime-deep"
+        placeholder="e.g. Wheat flour, sugar, palm oil, salt, natural flavoring, soy lecithin..."
+        className="min-h-[120px] w-full resize-y rounded-2xl border-[1.5px] border-glutify-line bg-glutify-panel-2 p-3.5 text-sm text-glutify-ink placeholder:text-glutify-ink-dim/60 focus:outline-none focus:border-glutify-lime-deep"
       />
       <button
         onClick={handleCheck}
         disabled={!text.trim()}
-        className="mt-3 w-full rounded-full bg-glutify-ink py-3.5 font-semibold text-glutify-lime transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-2.5 w-full rounded-full bg-glutify-ink py-4 text-[14.5px] font-extrabold tracking-tight text-glutify-lime transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
       >
         Check Ingredients
       </button>

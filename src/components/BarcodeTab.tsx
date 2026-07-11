@@ -1,10 +1,11 @@
 "use client";
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { Loader2, ScanLine, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { lookupBarcode } from "../lib/openFoodFacts";
 import { CheckResult } from "../lib/types";
-import type { IScannerControls } from "@zxing/browser";
+
+const CODE_PATTERN = /^\d{8,14}$/;
 
 export default function BarcodeTab({
   onResult,
@@ -12,178 +13,236 @@ export default function BarcodeTab({
   onResult: (result: CheckResult) => void;
 }) {
   const [manualCode, setManualCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+  const [scanning, setScanning] = useState(false);
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const controlsRef = useRef<IScannerControls | null>(null);
+  const scannerRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     return () => {
-      controlsRef.current?.stop();
+      const scanner = scannerRef.current;
+      if (scanner) {
+        scanner.stop().then(() => scanner.clear()).catch(() => {});
+      }
     };
   }, []);
 
   async function runLookup(code: string) {
-    setError(null);
-    setLoading(true);
+    setStatus(`Looking up ${code}…`);
+    const { result, statusMessage } = await lookupBarcode(code);
+    setStatus(statusMessage);
+    if (result) onResult(result);
+  }
+
+  async function startScanner() {
+    if (scanning) return;
+
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+      setStatus(
+        'Live camera isn\'t available in this view. Use "Scan Barcode From Photo" below. It works everywhere.'
+      );
+      return;
+    }
+
+    const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+    const formats = [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128,
+    ];
+    const scanner = new Html5Qrcode("reader", {
+      formatsToSupport: formats,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false,
+    });
+    scannerRef.current = scanner;
+    setStatus("Requesting camera…");
+
     try {
-      const result = await lookupBarcode(code, "barcode");
-      onResult(result);
-    } catch (e) {
-      if (e instanceof TypeError) {
-        setError("Network error — check your connection and try again.");
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 15,
+          qrbox: (vw: number) => {
+            const w = Math.min(vw * 0.85, 400);
+            return { width: w, height: Math.round(w * 0.45) };
+          },
+          aspectRatio: 1.777,
+          videoConstraints: {
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        },
+        (decodedText: string) => {
+          const code = decodedText.trim();
+          if (!CODE_PATTERN.test(code)) return;
+          stopScanner();
+          runLookup(code);
+        },
+        () => {}
+      );
+      setScanning(true);
+      setStatus("Hold the barcode inside the box, about 10–15cm away. Steady hands help.");
+    } catch (err) {
+      const name = err instanceof Error ? err.name : "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setStatus('Camera permission was blocked. Allow camera in your browser, or use "Scan Barcode From Photo" below.');
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setStatus('No usable camera found. Use "Scan Barcode From Photo" below, or type the number.');
       } else {
-        setError(e instanceof Error ? e.message : "Something went wrong looking that up.");
+        setStatus('Live camera couldn\'t start here. Use "Scan Barcode From Photo" below. It works everywhere.');
       }
-    } finally {
-      setLoading(false);
+      try {
+        scanner.clear();
+      } catch {
+        /* noop */
+      }
     }
   }
 
-  async function startCamera() {
-    setCameraError(null);
-    try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      setCameraActive(true);
-      const controls = await reader.decodeFromVideoDevice(
-        undefined,
-        videoRef.current ?? undefined,
-        (result) => {
-          if (result) {
-            stopCamera();
-            runLookup(result.getText());
-          }
-        }
-      );
-      controlsRef.current = controls;
-    } catch {
-      setCameraActive(false);
-      setCameraError(
-        "Couldn't access the camera. Check permissions, or use photo/manual entry instead."
-      );
+  function stopScanner() {
+    const scanner = scannerRef.current;
+    if (scanner && scanning) {
+      scanner
+        .stop()
+        .then(() => {
+          scanner.clear();
+          setScanning(false);
+          setStatus("");
+        })
+        .catch(() => {});
     }
-  }
-
-  function stopCamera() {
-    controlsRef.current?.stop();
-    controlsRef.current = null;
-    setCameraActive(false);
   }
 
   async function handlePhotoUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError(null);
-    setLoading(true);
-    const url = URL.createObjectURL(file);
+    stopScanner();
+    setStatus("Reading barcode from photo…");
+    const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+    const formats = [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128,
+    ];
+    const fileScanner = new Html5Qrcode("fileScanRegion", {
+      formatsToSupport: formats,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false,
+    });
     try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      const result = await reader.decodeFromImageUrl(url);
-      await runLookup(result.getText());
+      const result = await fileScanner.scanFileV2(file, false);
+      const code = (result?.decodedText ?? "").trim();
+      try {
+        fileScanner.clear();
+      } catch {
+        /* noop */
+      }
+      if (!CODE_PATTERN.test(code)) {
+        setStatus("Read a code, but it isn't a product barcode. Try a straighter, closer shot, or type the number below.");
+        return;
+      }
+      await runLookup(code);
     } catch {
-      setError("Couldn't find a barcode in that photo. Try a clearer, closer shot.");
-      setLoading(false);
+      try {
+        fileScanner.clear();
+      } catch {
+        /* noop */
+      }
+      setStatus("Couldn't find a barcode in that photo. Fill the frame with just the barcode, keep it in focus and level, then try again, or type the number below.");
     } finally {
-      URL.revokeObjectURL(url);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
+  function handleManualLookup() {
+    const code = manualCode.replace(/\s/g, "");
+    if (!CODE_PATTERN.test(code)) {
+      setStatus("That doesn't look like a product barcode. It should be 8 to 14 digits.");
+      return;
+    }
+    runLookup(code);
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-glutify-ink/50">
-          Live Camera Scan
-        </h2>
-        <div className="mt-2 border-t border-black/10" />
-
-        {cameraActive && (
-          <div className="mt-4 overflow-hidden rounded-2xl bg-black">
-            <video ref={videoRef} className="aspect-video w-full object-cover" muted playsInline />
-          </div>
-        )}
-
-        <div className="mt-4">
-          {!cameraActive ? (
-            <button
-              onClick={startCamera}
-              className="w-full rounded-full bg-glutify-ink py-3.5 font-semibold text-glutify-lime transition hover:opacity-90"
-            >
-              Start Camera
-            </button>
-          ) : (
-            <button
-              onClick={stopCamera}
-              className="w-full rounded-full bg-glutify-ink/10 py-3.5 font-semibold text-glutify-ink transition hover:bg-glutify-ink/15"
-            >
-              Stop Camera
-            </button>
-          )}
-        </div>
-        {cameraError && <p className="mt-2 text-sm text-rose-600">{cameraError}</p>}
+    <div>
+      <h2 className="mb-3.5 text-xs font-bold uppercase tracking-wide text-glutify-ink-dim">
+        Live Camera Scan
+      </h2>
+      <div
+        id="reader"
+        className="overflow-hidden rounded-2xl border-[1.5px] border-glutify-line bg-glutify-panel-2"
+      />
+      <button
+        onClick={startScanner}
+        className={`mt-3 w-full rounded-full bg-glutify-ink py-4 text-[14.5px] font-extrabold tracking-tight text-glutify-lime transition active:scale-[0.98] ${scanning ? "hidden" : ""}`}
+      >
+        Start Camera
+      </button>
+      <button
+        onClick={stopScanner}
+        className={`mt-3 w-full rounded-full border-[1.5px] border-glutify-line bg-transparent py-3 text-[13.5px] font-bold text-glutify-ink transition hover:border-glutify-ink ${scanning ? "" : "hidden"}`}
+      >
+        Stop Camera
+      </button>
+      <div className="mt-2.5 min-h-[16px] text-[12.5px] font-semibold text-glutify-ink-dim">
+        {status}
       </div>
 
-      <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-glutify-ink/40">
-        <div className="h-px flex-1 bg-black/10" />
+      <div className="my-5 flex items-center gap-3 text-[11px] font-bold uppercase tracking-wide text-glutify-ink-dim">
+        <div className="h-px flex-1 bg-glutify-line" />
         or
-        <div className="h-px flex-1 bg-black/10" />
+        <div className="h-px flex-1 bg-glutify-line" />
       </div>
 
-      <div>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-glutify-ink/50">
-          Scan Barcode From Photo
-        </h2>
+      <h2 className="mb-3.5 text-xs font-bold uppercase tracking-wide text-glutify-ink-dim">
+        Scan Barcode From Photo
+      </h2>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handlePhotoUpload}
+        className="hidden"
+        id="barcode-photo-input"
+      />
+      <label
+        htmlFor="barcode-photo-input"
+        className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-glutify-line bg-glutify-panel-2 py-9 text-center text-[13.5px] font-semibold text-glutify-ink-dim transition hover:border-glutify-lime-deep hover:bg-glutify-lime-soft hover:text-glutify-ink"
+      >
+        <Upload className="h-4 w-4" />
+        Tap to photograph or upload the barcode
+      </label>
+      <div id="fileScanRegion" className="hidden" />
+      <div className="mt-2 text-[11.5px] text-glutify-ink-dim">
+        Works everywhere, even when live camera is blocked. Get the barcode in focus, filling most of the frame.
+      </div>
 
+      <div className="mt-3.5 flex gap-2 border-t border-dashed border-glutify-line pt-3.5">
         <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handlePhotoUpload}
-          className="hidden"
-          id="barcode-photo-input"
+          value={manualCode}
+          onChange={(e) => setManualCode(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleManualLookup()}
+          inputMode="numeric"
+          placeholder="Or type the barcode number"
+          className="font-mono min-w-0 flex-1 rounded-full border-[1.5px] border-glutify-line bg-glutify-panel-2 px-4 py-3 text-sm text-glutify-ink placeholder:text-glutify-ink-dim/60 focus:outline-none focus:border-glutify-lime-deep"
         />
-        <label
-          htmlFor="barcode-photo-input"
-          className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-black/20 bg-glutify-cream py-8 text-sm font-medium text-glutify-ink/70 transition hover:border-glutify-lime-deep hover:text-glutify-ink"
+        <button
+          onClick={handleManualLookup}
+          className="flex-shrink-0 rounded-full border-[1.5px] border-glutify-ink bg-glutify-ink px-5 py-3 text-[13px] font-extrabold text-glutify-lime"
         >
-          <Upload className="h-4 w-4" />
-          Tap to photograph or upload the barcode
-        </label>
-        <p className="mt-2 text-sm text-glutify-ink/50">
-          Works everywhere, even when live camera is blocked. Get the barcode
-          in focus, filling most of the frame.
-        </p>
-
-        <div className="mt-4 border-t border-black/10 pt-4">
-          <div className="flex gap-2">
-            <input
-              value={manualCode}
-              onChange={(e) => setManualCode(e.target.value.replace(/[^\d]/g, ""))}
-              placeholder="e.g. 0037466051200"
-              inputMode="numeric"
-              className="flex-1 rounded-full bg-glutify-cream px-4 py-3 text-sm text-glutify-ink placeholder:text-glutify-ink/30 focus:outline-none focus:ring-2 focus:ring-glutify-lime-deep"
-            />
-            <button
-              onClick={() => runLookup(manualCode)}
-              disabled={!manualCode.trim() || loading}
-              className="flex items-center gap-2 rounded-full bg-glutify-ink px-5 font-semibold text-glutify-lime transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
-              Look up
-            </button>
-          </div>
-          <p className="mt-2 text-sm text-glutify-ink/50">
-            The number printed under the barcode, usually 12 or 13 digits.
-          </p>
-          {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
-        </div>
+          Look up
+        </button>
+      </div>
+      <div className="mt-2 text-[11.5px] text-glutify-ink-dim">
+        The number printed under the barcode, usually 12 or 13 digits.
       </div>
     </div>
   );
