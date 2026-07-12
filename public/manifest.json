@@ -1,12 +1,12 @@
 {
-  "name": "Glutify: Find foods you can eat",
+  "name": "Glutify: Gluten's got nowhere to hide",
   "short_name": "Glutify",
-  "description": "Scan a barcode, snap a label, or paste ingredients to check for gluten in seconds.",
+  "description": "Scan a barcode, snap the label, or paste the ingredients. Glootie finds what's hiding in there.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#F8F6EE",
-  "theme_color": "#181811",
+  "background_color": "#faf9f4",
+  "theme_color": "#131309",
   "orientation": "portrait",
   "icons": [
     {

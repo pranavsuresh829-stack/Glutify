@@ -15,9 +15,9 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Glutify: Find foods you can eat",
+  title: "Glutify: Gluten's got nowhere to hide",
   description:
-    "Scan a barcode, snap a label, or paste ingredients to check for gluten in seconds.",
+    "Scan a barcode, snap the label, or paste the ingredients. Glootie finds what's hiding in there.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

@@ -86,11 +86,11 @@ export default function GlutifyPage() {
           <div className="relative flex items-center gap-2.5">
             <div className="min-w-0 flex-1">
               <h1 className="font-display text-[38px] font-extrabold leading-[0.96] tracking-tight">
-                Find foods you can eat.
+                Gluten&apos;s got nowhere to hide.
               </h1>
               <p className="mt-3 text-sm font-medium leading-relaxed text-[#3a3a12]">
-                Scan a barcode, snap the label, or paste ingredients, and Glootie tells you in
-                seconds if gluten&apos;s hiding in there.
+                Scan a barcode, snap the label, or paste the ingredients. Glootie finds what&apos;s
+                hiding in there.
               </p>
             </div>
             <div className="flex w-[118px] flex-shrink-0 justify-center">
