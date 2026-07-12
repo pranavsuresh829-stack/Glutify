@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import ConsentModal from "../components/ConsentModal";
 import FeedbackModal from "../components/FeedbackModal";
 import ResultCard from "../components/ResultCard";
@@ -85,7 +86,7 @@ export default function GlutifyPage() {
           </span>
           <div className="relative flex items-center gap-2.5">
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-[38px] font-extrabold leading-[0.96] tracking-tight">
+              <h1 className="font-display text-[33px] font-extrabold leading-[0.96] tracking-tight sm:text-[38px]">
                 Gluten&apos;s got nowhere to hide.
               </h1>
               <p className="mt-3 text-sm font-medium leading-relaxed text-[#3a3a12]">
@@ -93,8 +94,8 @@ export default function GlutifyPage() {
                 hiding in there.
               </p>
             </div>
-            <div className="flex w-[118px] flex-shrink-0 justify-center">
-              <HeroMascot />
+            <div className="flex w-24 flex-shrink-0 justify-center sm:w-[118px]">
+              <HeroMascot className="h-[100px] w-[100px] sm:h-32 sm:w-32" />
             </div>
           </div>
         </div>
@@ -146,6 +147,13 @@ export default function GlutifyPage() {
           food allergy, follow the guidance of a qualified medical professional. You use Glutify at
           your own risk.
         </div>
+
+        <Link
+          href="/privacy"
+          className="mt-3 block text-center text-[11.5px] font-bold text-glutify-ink-dim underline decoration-1 underline-offset-[3px] hover:text-glutify-ink"
+        >
+          Privacy Policy
+        </Link>
       </div>
     </div>
   );

@@ -14,15 +14,30 @@ const body = Inter({
   variable: "--font-body",
 });
 
+const TITLE = "Glutify: Gluten's got nowhere to hide";
+const DESCRIPTION =
+  "Scan a barcode, snap the label, or paste the ingredients. Glootie finds what's hiding in there.";
+
 export const metadata: Metadata = {
-  title: "Glutify: Gluten's got nowhere to hide",
-  description:
-    "Scan a barcode, snap the label, or paste the ingredients. Glootie finds what's hiding in there.",
+  metadataBase: new URL("https://glutify.netlify.app"),
+  title: TITLE,
+  description: DESCRIPTION,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     title: "Glutify",
     statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    siteName: "Glutify",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
   },
 };
 
