@@ -27,14 +27,17 @@ export default function SpotsTab() {
     setName("");
     setCity("");
     setNote("");
-    setStatus("Added to your list.");
+    setStatus("Saved to this device.");
   }
 
   return (
     <div>
-      <h2 className="mb-3.5 text-xs font-bold uppercase tracking-wide text-glutify-ink-dim">
+      <h2 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-glutify-ink-dim">
         Add a Safe Spot
       </h2>
+      <p className="mb-3.5 text-[12.5px] leading-relaxed text-glutify-ink-dim">
+        Your own list, saved on this device only. Not shared with anyone else using Glutify.
+      </p>
       <div className="space-y-2">
         <input
           value={name}
@@ -72,9 +75,9 @@ export default function SpotsTab() {
               <MiniMascot size={60} mood="idle" />
             </div>
             <div className="mt-2.5">
-              No spots added yet.
+              No spots saved on this device yet.
               <br />
-              Be the first to add one.
+              Add one below to start your list.
             </div>
           </div>
         )}
