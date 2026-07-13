@@ -94,8 +94,8 @@ export default function GlutifyPage() {
                 hiding in there.
               </p>
             </div>
-            <div className="flex w-24 flex-shrink-0 justify-center sm:w-[118px]">
-              <HeroMascot className="h-[100px] w-[100px] sm:h-32 sm:w-32" />
+            <div className="flex w-28 flex-shrink-0 justify-center sm:w-[142px]">
+              <HeroMascot className="h-[116px] w-[116px] sm:h-40 sm:w-40" />
             </div>
           </div>
         </div>

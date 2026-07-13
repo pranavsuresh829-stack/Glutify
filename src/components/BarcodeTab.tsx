@@ -3,9 +3,10 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { lookupBarcode } from "../lib/openFoodFacts";
+import { BARCODE_PATTERN, decodeBarcodeFromFile } from "../lib/barcodeScan";
 import { CheckResult } from "../lib/types";
 
-const CODE_PATTERN = /^\d{8,14}$/;
+const CODE_PATTERN = BARCODE_PATTERN;
 
 export default function BarcodeTab({
   onResult,
@@ -123,39 +124,13 @@ export default function BarcodeTab({
     if (!file) return;
     stopScanner();
     setStatus("Reading barcode from photo…");
-    const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
-    const formats = [
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E,
-      Html5QrcodeSupportedFormats.CODE_128,
-    ];
-    const fileScanner = new Html5Qrcode("fileScanRegion", {
-      formatsToSupport: formats,
-      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-      verbose: false,
-    });
     try {
-      const result = await fileScanner.scanFileV2(file, false);
-      const code = (result?.decodedText ?? "").trim();
-      try {
-        fileScanner.clear();
-      } catch {
-        /* noop */
-      }
-      if (!CODE_PATTERN.test(code)) {
-        setStatus("Read a code, but it isn't a product barcode. Try a straighter, closer shot, or type the number below.");
+      const code = await decodeBarcodeFromFile(file, "fileScanRegion");
+      if (!code) {
+        setStatus("Couldn't find a barcode in that photo. Fill the frame with just the barcode, keep it in focus and level, then try again, or type the number below.");
         return;
       }
       await runLookup(code);
-    } catch {
-      try {
-        fileScanner.clear();
-      } catch {
-        /* noop */
-      }
-      setStatus("Couldn't find a barcode in that photo. Fill the frame with just the barcode, keep it in focus and level, then try again, or type the number below.");
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }

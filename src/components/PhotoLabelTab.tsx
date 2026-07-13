@@ -3,6 +3,8 @@
 import { ChangeEvent, useState } from "react";
 import { Upload } from "lucide-react";
 import { checkIngredientsText, looksLikeIngredientText } from "../lib/glutenCheck";
+import { decodeBarcodeFromFile } from "../lib/barcodeScan";
+import { lookupBarcode } from "../lib/openFoodFacts";
 import { CheckResult } from "../lib/types";
 
 export default function PhotoLabelTab({
@@ -26,8 +28,18 @@ export default function PhotoLabelTab({
   async function readAndCheck() {
     if (!file || !previewUrl) return;
     setLoading(true);
-    setStatus("Reading label text… this can take 10–20s.");
+    setStatus("Checking photo…");
     try {
+      const barcode = await decodeBarcodeFromFile(file, "photoFileScanRegion");
+      if (barcode) {
+        setStatus(`Found a barcode. Looking up ${barcode}…`);
+        const { result, statusMessage } = await lookupBarcode(barcode);
+        setStatus(statusMessage);
+        if (result) onResult(result);
+        return;
+      }
+
+      setStatus("Reading label text… this can take 10–20s.");
       const Tesseract = await import("tesseract.js");
       const {
         data: { text },
@@ -44,9 +56,7 @@ export default function PhotoLabelTab({
         return;
       }
       if (!looksLikeIngredientText(clean)) {
-        setStatus(
-          "That doesn't look like an ingredients list, might be a barcode or blurry text. If it's a barcode, use the Barcode tab instead."
-        );
+        setStatus("That doesn't look like an ingredients list. Try a sharper, closer photo.");
         return;
       }
       setStatus("Done.");
@@ -79,6 +89,7 @@ export default function PhotoLabelTab({
         <Upload className="h-4 w-4" />
         Tap to take a photo or upload a label image
       </label>
+      <div id="photoFileScanRegion" className="hidden" />
 
       {previewUrl && (
         // eslint-disable-next-line @next/next/no-img-element
