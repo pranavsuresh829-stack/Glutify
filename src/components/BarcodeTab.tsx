@@ -77,10 +77,11 @@ export default function BarcodeTab({
             height: { ideal: 1080 },
           },
         },
-        (decodedText: string) => {
+        async (decodedText: string) => {
           const code = decodedText.trim();
           if (!CODE_PATTERN.test(code)) return;
-          stopScanner();
+          setStatus("Barcode found. Looking up…");
+          await stopScanner();
           runLookup(code);
         },
         () => {}
@@ -104,18 +105,17 @@ export default function BarcodeTab({
     }
   }
 
-  function stopScanner() {
+  async function stopScanner() {
     const scanner = scannerRef.current;
-    if (scanner && scanning) {
-      scanner
-        .stop()
-        .then(() => {
-          scanner.clear();
-          setScanning(false);
-          setStatus("");
-        })
-        .catch(() => {});
+    if (scanner && scanner.isScanning) {
+      try {
+        await scanner.stop();
+        scanner.clear();
+      } catch {
+        /* noop */
+      }
     }
+    setScanning(false);
   }
 
   async function handlePhotoUpload(e: ChangeEvent<HTMLInputElement>) {
@@ -186,7 +186,10 @@ export default function BarcodeTab({
         Start Camera
       </button>
       <button
-        onClick={stopScanner}
+        onClick={() => {
+          stopScanner();
+          setStatus("");
+        }}
         className={`mt-3 w-full rounded-full border-[1.5px] border-glutify-line bg-transparent py-3 text-[13.5px] font-bold text-glutify-ink transition hover:border-glutify-ink ${scanning ? "" : "hidden"}`}
       >
         Stop Camera
