@@ -91,3 +91,13 @@ export function buildResult(
 export function checkIngredientsText(rawText: string): CheckResult {
   return buildResult(analyzeIngredients(rawText), {});
 }
+
+/**
+ * Rough sanity check that OCR text actually looks like an ingredient list
+ * rather than garbled noise (e.g. a misread barcode). Requires at least a
+ * couple of real alphabetic words.
+ */
+export function looksLikeIngredientText(text: string): boolean {
+  const words = text.split(/[^a-zA-Z']+/).filter((w) => w.length >= 3);
+  return words.length >= 2;
+}

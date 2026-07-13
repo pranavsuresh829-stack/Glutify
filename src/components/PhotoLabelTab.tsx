@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useState } from "react";
 import { Upload } from "lucide-react";
-import { checkIngredientsText } from "../lib/glutenCheck";
+import { checkIngredientsText, looksLikeIngredientText } from "../lib/glutenCheck";
 import { CheckResult } from "../lib/types";
 
 export default function PhotoLabelTab({
@@ -41,6 +41,12 @@ export default function PhotoLabelTab({
       const clean = (text || "").trim();
       if (!clean) {
         setStatus("No text found. Get the ingredients list close, flat, and well-lit, then try again.");
+        return;
+      }
+      if (!looksLikeIngredientText(clean)) {
+        setStatus(
+          "That doesn't look like an ingredients list, might be a barcode or blurry text. If it's a barcode, use the Barcode tab instead."
+        );
         return;
       }
       setStatus("Done.");
