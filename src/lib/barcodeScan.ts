@@ -11,7 +11,6 @@ async function makeFileScanner(elementId: string) {
   ];
   return new Html5Qrcode(elementId, {
     formatsToSupport: formats,
-    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
     verbose: false,
   });
 }

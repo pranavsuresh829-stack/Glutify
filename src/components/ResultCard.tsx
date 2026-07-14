@@ -73,12 +73,6 @@ export default function ResultCard({
           </ul>
         )}
 
-        {result.rawText && (
-          <div className="font-mono mt-3.5 max-h-[120px] overflow-y-auto rounded-2xl border border-glutify-line bg-glutify-panel-2 p-3 text-[11.5px] leading-relaxed text-glutify-ink-dim">
-            {result.rawText}
-          </div>
-        )}
-
         <button
           onClick={onToggleSaved}
           className={`mt-3.5 w-full rounded-full border-[1.5px] py-2.5 text-[13px] font-bold transition-colors ${

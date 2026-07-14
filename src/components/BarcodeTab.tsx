@@ -56,7 +56,6 @@ export default function BarcodeTab({
     ];
     const scanner = new Html5Qrcode("reader", {
       formatsToSupport: formats,
-      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
       verbose: false,
     });
     scannerRef.current = scanner;
