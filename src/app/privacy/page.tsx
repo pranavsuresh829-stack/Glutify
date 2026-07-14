@@ -22,8 +22,9 @@ export default function PrivacyPage() {
             <p className="text-glutify-ink-dim">
               Glutify does not have user accounts, does not run analytics or ad tracking, and does not
               have a server database. Your scan history and safe spots stay on your own device. The
-              only data that ever leaves your device is what you type into the feedback form, and the
-              barcode number when you look up a product.
+              only things that leave your device are: what you type into the feedback form, the
+              barcode number when you look up a product, and a one-time download of the software that
+              powers label reading (details below). Your photos themselves are never uploaded anywhere.
             </p>
           </section>
 
@@ -61,6 +62,12 @@ export default function PrivacyPage() {
               your browser. They are never uploaded to us or to any server. Once you leave the page,
               they&apos;re gone.
             </p>
+            <p className="mt-3 text-glutify-ink-dim">
+              To read text off a label, the Photo tab uses an on-device reading engine
+              (Tesseract.js). The first time you use it, your browser downloads the reading software
+              itself from a public CDN (jsdelivr), which sees your IP address the same way any website
+              request does. Only that software is downloaded, never your photo or the text it reads.
+            </p>
           </section>
 
           <section>
@@ -76,8 +83,10 @@ export default function PrivacyPage() {
           <section>
             <h2 className="font-display mb-2 text-base font-bold">No tracking</h2>
             <p className="text-glutify-ink-dim">
-              We don&apos;t use cookies, analytics, or advertising trackers. We have no way to identify
-              you or follow you across sites.
+              We don&apos;t use cookies, analytics, or advertising trackers, and we have no way to
+              identify you or follow you across sites. The one exception is the CDN request described
+              above when you first use the Photo tab, which is standard for how that software is
+              distributed, not something we set up to track you.
             </p>
           </section>
 
