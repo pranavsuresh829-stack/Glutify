@@ -46,22 +46,26 @@ export default function BarcodeTab({
       return;
     }
 
-    const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
-    const formats = [
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E,
-      Html5QrcodeSupportedFormats.CODE_128,
-    ];
-    const scanner = new Html5Qrcode("reader", {
-      formatsToSupport: formats,
-      verbose: false,
-    });
-    scannerRef.current = scanner;
-    setStatus("Requesting camera…");
+    setStatus("Starting camera…");
+    let scanner: import("html5-qrcode").Html5Qrcode | null = null;
 
     try {
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+      const formats = [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128,
+      ];
+      scanner = new Html5Qrcode("reader", {
+        formatsToSupport: formats,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: false },
+        verbose: false,
+      });
+      scannerRef.current = scanner;
+      setStatus("Requesting camera…");
+
       await scanner.start(
         { facingMode: "environment" },
         {
@@ -95,13 +99,18 @@ export default function BarcodeTab({
       } else if (name === "NotFoundError" || name === "OverconstrainedError") {
         setStatus('No usable camera found. Use "Scan Barcode From Photo" below, or type the number.');
       } else {
-        setStatus('Live camera couldn\'t start here. Use "Scan Barcode From Photo" below. It works everywhere.');
+        setStatus(
+          `Live camera couldn't start here${err instanceof Error && err.message ? ` (${err.message})` : ""}. Use "Scan Barcode From Photo" below. It works everywhere.`
+        );
       }
-      try {
-        scanner.clear();
-      } catch {
-        /* noop */
+      if (scanner) {
+        try {
+          scanner.clear();
+        } catch {
+          /* noop */
+        }
       }
+      scannerRef.current = null;
     }
   }
 
