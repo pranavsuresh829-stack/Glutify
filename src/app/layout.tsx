@@ -55,7 +55,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
-      <body className="font-body bg-glutify-bg text-glutify-ink antialiased">{children}</body>
+      <body className="font-body bg-glutify-bg text-glutify-ink antialiased">
+        {children}
+        <script
+          defer
+          type="module"
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "1bf5ce98d8b2404394c28ed032fc4264"}'
+        />
+      </body>
     </html>
   );
 }

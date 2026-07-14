@@ -20,11 +20,12 @@ export default function PrivacyPage() {
           <section>
             <h2 className="font-display mb-2 text-base font-bold">The short version</h2>
             <p className="text-glutify-ink-dim">
-              Glutify does not have user accounts, does not run analytics or ad tracking, and does not
-              have a server database. Your scan history and safe spots stay on your own device. The
-              only things that leave your device are: what you type into the feedback form, the
-              barcode number when you look up a product, and a one-time download of the software that
-              powers label reading (details below). Your photos themselves are never uploaded anywhere.
+              Glutify does not have user accounts, does not run ad tracking, and does not have a
+              server database. Your scan history and safe spots stay on your own device. The only
+              things that leave your device are: what you type into the feedback form, the barcode
+              number when you look up a product, anonymous visit counts (details below), and a
+              one-time download of the software that powers label reading. Your photos themselves are
+              never uploaded anywhere.
             </p>
           </section>
 
@@ -81,12 +82,18 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display mb-2 text-base font-bold">No tracking</h2>
+            <h2 className="font-display mb-2 text-base font-bold">Analytics</h2>
             <p className="text-glutify-ink-dim">
-              We don&apos;t use cookies, analytics, or advertising trackers, and we have no way to
-              identify you or follow you across sites. The one exception is the CDN request described
-              above when you first use the Photo tab, which is standard for how that software is
-              distributed, not something we set up to track you.
+              We use Cloudflare Web Analytics to see how many people visit the site and which pages
+              they land on. It doesn&apos;t use cookies, doesn&apos;t fingerprint your device, and
+              doesn&apos;t give us any way to identify you individually or follow you across other
+              sites. It only reports aggregate counts: visits and page views. We have no advertising
+              trackers of any kind.
+            </p>
+            <p className="mt-3 text-glutify-ink-dim">
+              The one other thing that isn&apos;t analytics but is worth noting here: the CDN request
+              described above when you first use the Photo tab, which is standard for how that
+              software is distributed, not something we set up to track you.
             </p>
           </section>
 
