@@ -69,17 +69,8 @@ export default function BarcodeTab({
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 15,
-          qrbox: (vw: number) => {
-            const w = Math.min(vw * 0.85, 400);
-            return { width: w, height: Math.round(w * 0.45) };
-          },
-          aspectRatio: 1.777,
-          videoConstraints: {
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
+          fps: 10,
+          qrbox: { width: 280, height: 140 },
         },
         async (decodedText: string) => {
           const code = decodedText.trim();
