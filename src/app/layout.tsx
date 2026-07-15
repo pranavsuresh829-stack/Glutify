@@ -19,7 +19,7 @@ const DESCRIPTION =
   "Scan a barcode, snap the label, or paste the ingredients. Glootie finds what's hiding in there.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://glutify.netlify.app"),
+  metadataBase: new URL("https://glutify.vercel.app"),
   title: TITLE,
   description: DESCRIPTION,
   manifest: "/manifest.json",
