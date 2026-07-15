@@ -3,7 +3,7 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { lookupBarcode } from "../lib/openFoodFacts";
-import { BARCODE_PATTERN, decodeBarcodeFromFile } from "../lib/barcodeScan";
+import { BARCODE_PATTERN, decodeBarcodeFromFile, hasValidChecksum } from "../lib/barcodeScan";
 import { CheckResult } from "../lib/types";
 
 const CODE_PATTERN = BARCODE_PATTERN;
@@ -83,7 +83,7 @@ export default function BarcodeTab({
         },
         async (decodedText: string) => {
           const code = decodedText.trim();
-          if (!CODE_PATTERN.test(code)) return;
+          if (!CODE_PATTERN.test(code) || !hasValidChecksum(code)) return;
           setStatus("Barcode found. Looking up…");
           await stopScanner();
           runLookup(code);

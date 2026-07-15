@@ -50,8 +50,8 @@ export async function lookupBarcode(code: string): Promise<LookupOutcome> {
     const product = data.product;
     const ingredientsText = product.ingredients_text_en || product.ingredients_text || "";
     const allergens = (product.allergens_tags || []).join(" ");
-    const traces = (product.traces_tags || []).join(" ");
-    const combinedText = [ingredientsText, allergens, traces].join(" ");
+    const tracesTags = product.traces_tags || [];
+    const tracesMentionGluten = tracesTags.some((t) => /gluten/i.test(t));
 
     if (!ingredientsText && !allergens) {
       return {
@@ -63,8 +63,17 @@ export async function lookupBarcode(code: string): Promise<LookupOutcome> {
       };
     }
 
+    // Ingredients + declared allergens are direct "this product has X" signals.
+    // Traces (may contain due to shared equipment) are a separate, lesser
+    // caution and should never on their own push the verdict to "Contains
+    // Gluten" the way an actual ingredient does.
+    const found = analyzeIngredients([ingredientsText, allergens].join(" "));
+    if (tracesMentionGluten && !found.trace.includes("may contain traces of gluten")) {
+      found.trace = [...found.trace, "may contain traces of gluten"];
+    }
+
     return {
-      result: buildResult(analyzeIngredients(combinedText), {
+      result: buildResult(found, {
         productName: product.product_name || code,
         rawText: ingredientsText,
       }),

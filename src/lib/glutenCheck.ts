@@ -6,7 +6,7 @@ export const DEFINITE = [
   "malt vinegar", "brewer's yeast", "brewers yeast", "spelt", "kamut", "farro", "farina",
   "durum", "semolina", "triticale", "seitan", "graham flour", "bulgur", "couscous",
   "einkorn", "emmer", "freekeh", "matzo", "matzo meal", "panko", "udon", "wheat protein",
-  "hydrolyzed wheat protein", "vital wheat gluten", "gluten",
+  "hydrolyzed wheat protein", "vital wheat gluten",
 ];
 
 export const CHECK = [
@@ -17,10 +17,34 @@ export const CHECK = [
 ];
 
 export const TRACE_PHRASES = [
-  "may contain wheat", "may contain gluten", "processed in a facility",
+  "may contain wheat", "may contain gluten", "traces of gluten", "traces of wheat",
+  "trace of gluten", "trace of wheat", "processed in a facility",
   "processed on shared equipment", "manufactured in a facility that also processes",
   "shared equipment with wheat", "allergen warning",
 ];
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Strips "<keyword>-free" / "<keyword> free" claims (e.g. "gluten-free",
+ * "wheat free") out of the text before matching, so an explicit
+ * gluten-free label doesn't get flagged just because it contains the word
+ * "gluten".
+ */
+function stripFreeClaims(text: string, keywords: string[]): string {
+  let cleaned = text;
+  for (const k of keywords) {
+    cleaned = cleaned.replace(new RegExp(`\\b${escapeRegex(k)}[\\s-]?free\\b`, "gi"), " ");
+  }
+  return cleaned;
+}
+
+/** Word-boundary match so keywords don't fire inside unrelated longer words. */
+function findMatches(text: string, keywords: string[]): string[] {
+  return keywords.filter((k) => new RegExp(`\\b${escapeRegex(k)}\\b`, "i").test(text));
+}
 
 function dedupeOverlaps(arr: string[]): string[] {
   const sorted = Array.from(new Set(arr)).sort((a, b) => b.length - a.length);
@@ -32,17 +56,15 @@ function dedupeOverlaps(arr: string[]): string[] {
 }
 
 export function analyzeIngredients(rawText: string): AnalyzeResult {
-  const text = rawText.toLowerCase();
-  const found: AnalyzeResult = { definite: [], check: [], trace: [] };
-  DEFINITE.forEach((k) => {
-    if (text.includes(k)) found.definite.push(k);
-  });
-  CHECK.forEach((k) => {
-    if (text.includes(k)) found.check.push(k);
-  });
-  TRACE_PHRASES.forEach((p) => {
-    if (text.includes(p)) found.trace.push(p);
-  });
+  const lowered = rawText.toLowerCase();
+  const text = stripFreeClaims(lowered, [...DEFINITE, ...CHECK]);
+
+  const found: AnalyzeResult = {
+    definite: findMatches(text, DEFINITE),
+    check: findMatches(text, CHECK),
+    trace: TRACE_PHRASES.filter((p) => text.includes(p)),
+  };
+
   found.definite = dedupeOverlaps(found.definite);
   found.check = dedupeOverlaps(found.check).filter(
     (c) => !found.definite.some((d) => d.includes(c) || c.includes(d))
@@ -64,18 +86,18 @@ export function buildResult(
   let title: string;
   let subtitle: string;
 
-  if (flags.length === 0) {
-    verdict = "safe";
-    title = "Likely Gluten-Free";
-    subtitle = "No gluten-containing ingredients detected in this text.";
-  } else if (found.definite.length > 0) {
+  if (found.definite.length > 0) {
     verdict = "bad";
     title = "Contains Gluten";
     subtitle = `${found.definite.length} gluten ingredient(s) found.`;
-  } else {
+  } else if (flags.length > 0) {
     verdict = "warn";
     title = "Check This One Closer";
     subtitle = "Ambiguous ingredients or cross-contamination warning found.";
+  } else {
+    verdict = "safe";
+    title = "Likely Gluten-Free";
+    subtitle = "No gluten-containing ingredients detected in this text.";
   }
 
   return {
