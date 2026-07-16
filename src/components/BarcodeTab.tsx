@@ -5,6 +5,7 @@ import { Upload } from "lucide-react";
 import { lookupBarcode } from "../lib/openFoodFacts";
 import { BARCODE_PATTERN, decodeBarcodeFromFile, hasValidChecksum } from "../lib/barcodeScan";
 import { CheckResult } from "../lib/types";
+import type { IScannerControls } from "@zxing/browser";
 
 const CODE_PATTERN = BARCODE_PATTERN;
 
@@ -17,15 +18,14 @@ export default function BarcodeTab({
   const [status, setStatus] = useState("");
   const [scanning, setScanning] = useState(false);
 
-  const scannerRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     return () => {
-      const scanner = scannerRef.current;
-      if (scanner) {
-        scanner.stop().then(() => scanner.clear()).catch(() => {});
-      }
+      controlsRef.current?.stop();
+      controlsRef.current = null;
     };
   }, []);
 
@@ -47,37 +47,34 @@ export default function BarcodeTab({
     }
 
     setStatus("Starting camera…");
-    let scanner: import("html5-qrcode").Html5Qrcode | null = null;
 
     try {
-      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
-      const formats = [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_128,
-      ];
-      scanner = new Html5Qrcode("reader", {
-        formatsToSupport: formats,
-        experimentalFeatures: { useBarCodeDetectorIfSupported: false },
-        verbose: false,
-      });
-      scannerRef.current = scanner;
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const { BarcodeFormat, DecodeHintType } = await import("@zxing/library");
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.CODE_128,
+      ]);
+      const reader = new BrowserMultiFormatReader(hints);
       setStatus("Requesting camera…");
 
-      await scanner.start(
-        { facingMode: "environment" },
-        { fps: 10 },
-        async (decodedText: string) => {
-          const code = decodedText.trim();
+      const controls = await reader.decodeFromConstraints(
+        { video: { facingMode: "environment" } },
+        videoRef.current ?? undefined,
+        (result) => {
+          if (!result) return;
+          const code = result.getText().trim();
           if (!CODE_PATTERN.test(code) || !hasValidChecksum(code)) return;
           setStatus("Barcode found. Looking up…");
-          await stopScanner();
+          stopScanner();
           runLookup(code);
-        },
-        () => {}
+        }
       );
+      controlsRef.current = controls;
       setScanning(true);
       setStatus("Point the camera at the barcode, about 10–15cm away. Steady hands help.");
     } catch (err) {
@@ -91,27 +88,13 @@ export default function BarcodeTab({
           `Live camera couldn't start here${err instanceof Error && err.message ? ` (${err.message})` : ""}. Use "Scan Barcode From Photo" below. It works everywhere.`
         );
       }
-      if (scanner) {
-        try {
-          scanner.clear();
-        } catch {
-          /* noop */
-        }
-      }
-      scannerRef.current = null;
+      controlsRef.current = null;
     }
   }
 
-  async function stopScanner() {
-    const scanner = scannerRef.current;
-    if (scanner && scanner.isScanning) {
-      try {
-        await scanner.stop();
-        scanner.clear();
-      } catch {
-        /* noop */
-      }
-    }
+  function stopScanner() {
+    controlsRef.current?.stop();
+    controlsRef.current = null;
     setScanning(false);
   }
 
@@ -146,10 +129,14 @@ export default function BarcodeTab({
       <h2 className="mb-3.5 text-xs font-bold uppercase tracking-wide text-glutify-ink-dim">
         Live Camera Scan
       </h2>
-      <div
-        id="reader"
-        className="overflow-hidden rounded-2xl border-[1.5px] border-glutify-line bg-glutify-panel-2"
-      />
+      <div className="overflow-hidden rounded-2xl border-[1.5px] border-glutify-line bg-glutify-panel-2">
+        <video
+          ref={videoRef}
+          muted
+          playsInline
+          className={`aspect-video w-full object-cover ${scanning ? "block" : "hidden"}`}
+        />
+      </div>
       <button
         onClick={startScanner}
         className={`mt-3 w-full rounded-full bg-glutify-ink py-4 text-[14.5px] font-extrabold tracking-tight text-glutify-lime transition active:scale-[0.98] ${scanning ? "hidden" : ""}`}
