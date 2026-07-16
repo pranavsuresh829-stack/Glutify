@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -57,6 +58,7 @@ export default function RootLayout({
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body className="font-body bg-glutify-bg text-glutify-ink antialiased">
         {children}
+        <SpeedInsights />
         <script
           defer
           type="module"
