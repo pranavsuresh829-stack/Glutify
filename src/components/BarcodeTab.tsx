@@ -68,10 +68,7 @@ export default function BarcodeTab({
 
       await scanner.start(
         { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 280, height: 140 },
-        },
+        { fps: 10 },
         async (decodedText: string) => {
           const code = decodedText.trim();
           if (!CODE_PATTERN.test(code) || !hasValidChecksum(code)) return;
@@ -82,7 +79,7 @@ export default function BarcodeTab({
         () => {}
       );
       setScanning(true);
-      setStatus("Hold the barcode inside the box, about 10–15cm away. Steady hands help.");
+      setStatus("Point the camera at the barcode, about 10–15cm away. Steady hands help.");
     } catch (err) {
       const name = err instanceof Error ? err.name : "";
       if (name === "NotAllowedError" || name === "SecurityError") {
